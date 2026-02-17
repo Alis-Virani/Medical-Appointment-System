@@ -1,0 +1,27 @@
+streamlit
+langchain
+langchain-nvidia-ai-endpoints
+neo4j
+chromadb
+sentence-transformers
+mem0ai
+pdfplumber
+pytesseract
+Pillow
+audio-recorder-streamlit
+python-dotenv
+requests-cache
+
+# Phase 1: Notifications & Payments
+twilio
+sendgrid
+razorpay
+
+# Phase 2: Medical Intelligence (to be installed later)
+# googletrans==4.0.0-rc1
+# openai-whisper
+# gtts
+
+# Phase 3: Professional Features (to be installed later)
+# plotly
+# pyjwt
