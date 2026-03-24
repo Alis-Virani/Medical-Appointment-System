@@ -26,6 +26,11 @@ class MedicalKnowledgeGraph:
         self.user = user or os.getenv("NEO4J_USER", "neo4j")
         self.password = password or os.getenv("NEO4J_PASSWORD", "password")
         
+        # Initialize medical knowledge caches
+        self.medical_conditions = {}
+        self.herb_remedies = {}
+        self.drug_interactions = []
+        
         try:
             self.driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
             self.driver.verify_connectivity()
@@ -207,6 +212,151 @@ class MedicalKnowledgeGraph:
             DETACH DELETE d
             """
             session.run(query, doctor_id=doctor_id)
+    
+    # ============================================================================
+    # LOAD MEDICAL DATA FROM SQLITE
+    # ============================================================================
+    
+    def load_medical_conditions_from_db(self) -> Dict:
+        """Load all medical conditions from SQLite into memory cache"""
+        import sqlite3
+        try:
+            conn = sqlite3.connect("hospital.db", timeout=10)
+            cur = conn.cursor()
+            
+            # Fetch all conditions
+            cur.execute("SELECT condition_name, symptoms, causes, severity FROM medical_conditions")
+            conditions = {}
+            count = 0
+            
+            for row in cur.fetchall():
+                condition_name = row[0]
+                conditions[condition_name] = {
+                    "symptoms": row[1].split(", ") if row[1] else [],
+                    "causes": row[2].split(", ") if row[2] else [],
+                    "severity": row[3] or "medium"
+                }
+                count += 1
+            
+            conn.close()
+            print(f"   ✅ Loaded {count} medical conditions from SQLite")
+            return conditions
+        except Exception as e:
+            print(f"   ⚠️  Could not load conditions from SQLite: {e}")
+            return {}
+    
+    def load_herb_remedies_from_db(self) -> Dict:
+        """Load all herb remedies from SQLite into memory cache"""
+        import sqlite3
+        try:
+            conn = sqlite3.connect("hospital.db", timeout=10)
+            cur = conn.cursor()
+            
+            # Fetch all herbs
+            cur.execute("SELECT herb_name, conditions_treat, dosage, benefits FROM herb_remedies")
+            herbs = {}
+            count = 0
+            
+            for row in cur.fetchall():
+                herb_name = row[0]
+                herbs[herb_name] = {
+                    "conditions": row[1].split(", ") if row[1] else [],
+                    "dosage": row[2] or "As directed",
+                    "benefits": row[3] or ""
+                }
+                count += 1
+            
+            conn.close()
+            print(f"   ✅ Loaded {count} herb remedies from SQLite")
+            return herbs
+        except Exception as e:
+            print(f"   ⚠️  Could not load herbs from SQLite: {e}")
+            return {}
+    
+    def load_drug_interactions_from_db(self) -> List[Dict]:
+        """Load all drug interactions from SQLite into memory cache"""
+        import sqlite3
+        try:
+            conn = sqlite3.connect("hospital.db", timeout=10)
+            cur = conn.cursor()
+            
+            # Fetch all interactions
+            cur.execute("SELECT drug1, drug2, severity, effect FROM drug_interactions")
+            interactions = []
+            count = 0
+            
+            for row in cur.fetchall():
+                interactions.append({
+                    "drug1": row[0],
+                    "drug2": row[1],
+                    "severity": row[2],
+                    "effect": row[3]
+                })
+                count += 1
+            
+            conn.close()
+            print(f"   ✅ Loaded {count} drug interactions from SQLite")
+            return interactions
+        except Exception as e:
+            print(f"   ⚠️  Could not load interactions from SQLite: {e}")
+            return []
+    
+    def cache_medical_knowledge(self):
+        """Cache medical data in memory for fast access"""
+        print("📚 Caching Medical Knowledge...")
+        self.medical_conditions = self.load_medical_conditions_from_db()
+        self.herb_remedies = self.load_herb_remedies_from_db()
+        self.drug_interactions = self.load_drug_interactions_from_db()
+        print("   ✅ Medical knowledge cached in memory\n")
+    
+    def get_condition_details(self, condition: str) -> Dict:
+        """Get detailed information about a condition"""
+        if not hasattr(self, 'medical_conditions'):
+            self.cache_medical_knowledge()
+        
+        condition_lower = condition.lower()
+        for cond_name, details in self.medical_conditions.items():
+            if cond_name.lower() == condition_lower:
+                return details
+        return None
+    
+    def get_herb_for_condition(self, condition: str) -> List[str]:
+        """Find herbs that can treat a given condition"""
+        if not hasattr(self, 'herb_remedies'):
+            self.cache_medical_knowledge()
+        
+        matching_herbs = []
+        condition_lower = condition.lower()
+        
+        for herb_name, details in self.herb_remedies.items():
+            for cond in details.get("conditions", []):
+                if condition_lower in cond.lower() or cond.lower() in condition_lower:
+                    matching_herbs.append({
+                        "herb": herb_name,
+                        "dosage": details.get("dosage"),
+                        "benefits": details.get("benefits")
+                    })
+                    break
+        
+        return matching_herbs
+    
+    def check_drug_interaction(self, drug1: str, drug2: str) -> Optional[Dict]:
+        """Check if two drugs have dangerous interactions"""
+        if not hasattr(self, 'drug_interactions'):
+            self.cache_medical_knowledge()
+        
+        drug1_lower = drug1.lower()
+        drug2_lower = drug2.lower()
+        
+        for interaction in self.drug_interactions:
+            d1 = interaction["drug1"].lower()
+            d2 = interaction["drug2"].lower()
+            
+            if (d1 == drug1_lower and d2 == drug2_lower) or \
+               (d1 == drug2_lower and d2 == drug1_lower):
+                return interaction
+        
+        return None
     
     # ============================================================================
     # INTELLIGENT SYMPTOM-BASED REASONING (GraphRAG)
@@ -504,6 +654,7 @@ def get_knowledge_graph() -> MedicalKnowledgeGraph:
     if _kg_instance is None:
         _kg_instance = MedicalKnowledgeGraph()
         _kg_instance.initialize_medical_graph()
+        _kg_instance.cache_medical_knowledge()  # Load medical data on startup
     return _kg_instance
 
 

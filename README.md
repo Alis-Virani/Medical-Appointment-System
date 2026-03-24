@@ -172,6 +172,19 @@ User: "I have mild fever" → ✅ "See a doctor, here are recommendations"
 NVIDIA_API_KEY=your_api_key_here
 ```
 
+### Sarvam Voice API (Required for Voice STT/TTS)
+
+```env
+SARVAM_API_KEY=your_sarvam_api_key_here
+# Optional overrides
+# SARVAM_BASE_URL=https://api.sarvam.ai
+# SARVAM_STT_PATH=/speech-to-text
+# SARVAM_TTS_PATH=/text-to-speech
+# SARVAM_DEFAULT_LANG=en-IN
+# SARVAM_TTS_MODEL=bulbul:v2
+# SARVAM_TTS_SPEAKER=anushka
+```
+
 ### Neo4j (Optional - Fallback to In-Memory)
 
 ```env

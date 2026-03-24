@@ -42,6 +42,13 @@ except ImportError:
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "noreply@medicare-ai.com")
 
+
+def is_email_configured() -> bool:
+    """Return True if SendGrid is installed and the API key is set."""
+    # Re-read from env each time so live .env edits are picked up
+    load_dotenv(override=True)
+    return SENDGRID_AVAILABLE and bool(os.getenv("SENDGRID_API_KEY"))
+
 # ============================================================================
 # SMS FUNCTIONS
 # ============================================================================
@@ -87,35 +94,31 @@ def send_sms(phone: str, message: str) -> bool:
 
 def send_email(to: str, subject: str, body: str, html_body: Optional[str] = None) -> bool:
     """
-    Send email via SendGrid
-    
-    Args:
-        to: Recipient email address
-        subject: Email subject
-        body: Plain text email body
-        html_body: Optional HTML email body
-    
-    Returns:
-        True if sent successfully, False otherwise
+    Send email via SendGrid.
+    Re-reads env vars each call so .env changes take effect without restart.
     """
+    load_dotenv(override=True)          # pick up any runtime .env changes
+    api_key    = os.getenv("SENDGRID_API_KEY")
+    from_email = os.getenv("SENDGRID_FROM_EMAIL", "noreply@medicare-ai.com")
+
     if not SENDGRID_AVAILABLE:
-        print("❌ SendGrid not available")
+        print("❌ SendGrid not available. Run: pip install sendgrid")
         return False
-    
-    if not SENDGRID_API_KEY:
-        print("❌ SendGrid API key not configured in .env")
+
+    if not api_key:
+        print("❌ SENDGRID_API_KEY not set in .env")
         return False
     
     try:
         message = Mail(
-            from_email=SENDGRID_FROM_EMAIL,
+            from_email=from_email,
             to_emails=to,
             subject=subject,
             plain_text_content=body,
             html_content=html_body or body
         )
         
-        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        sg = SendGridAPIClient(api_key)
         response = sg.send(message)
         
         print(f"✅ Email sent to {to}: Status {response.status_code}")

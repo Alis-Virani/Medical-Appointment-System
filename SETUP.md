@@ -33,6 +33,16 @@ Create `.env` file in your project root:
 # Required: Nvidia LLM API
 NVIDIA_API_KEY=your_nvidia_api_key_here
 
+# Required for Voice (STT + TTS)
+SARVAM_API_KEY=your_sarvam_api_key_here
+# Optional overrides
+# SARVAM_BASE_URL=https://api.sarvam.ai
+# SARVAM_STT_PATH=/speech-to-text
+# SARVAM_TTS_PATH=/text-to-speech
+# SARVAM_DEFAULT_LANG=en-IN
+# SARVAM_TTS_MODEL=bulbul:v2
+# SARVAM_TTS_SPEAKER=anushka
+
 # Neo4j (Optional - falls back to in-memory)
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j

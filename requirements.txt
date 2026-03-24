@@ -1,8 +1,9 @@
 streamlit
 langchain
+langchain-groq
 langchain-nvidia-ai-endpoints
 neo4j
-chromadb
+qdrant-client
 sentence-transformers
 mem0ai
 pdfplumber
@@ -10,7 +11,10 @@ pytesseract
 Pillow
 audio-recorder-streamlit
 python-dotenv
+requests
 requests-cache
+pandas
+openpyxl
 
 # Phase 1: Notifications & Payments
 twilio
@@ -18,10 +22,17 @@ sendgrid
 razorpay
 
 # Phase 2: Medical Intelligence (to be installed later)
-# googletrans==4.0.0-rc1
+deep-translator
 # openai-whisper
-# gtts
+# Sarvam voice (STT + TTS) — set SARVAM_API_KEY in .env
 
-# Phase 3: Professional Features (to be installed later)
-# plotly
+# Phase 2: Real-Time Updates (WebSocket)
+fastapi
+uvicorn
+websockets
+python-multipart
+
+# Phase 3: Professional Features
+plotly
+pandas
 # pyjwt

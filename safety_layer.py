@@ -9,6 +9,8 @@ Implements critical guardrails for medical chatbot
 
 from typing import Tuple, Optional
 from enum import Enum
+from langchain_groq import ChatGroq
+from langchain_core.messages import SystemMessage, HumanMessage
 
 class TriageSeverity(Enum):
     """Emergency severity levels"""
@@ -22,9 +24,10 @@ class SafetyManager:
     """Manages safety guardrails and emergency detection"""
     
     def __init__(self):
-        # Critical keywords that indicate life-threatening emergencies
-        self.critical_keywords = {
-            # Cardiac emergencies
+        # ========== ACUTE EMERGENCY KEYWORDS ==========
+        # Immediate threat to life or limb happening NOW
+        self.acute_keywords = {
+            # Cardiac emergencies (NOW)
             "chest pain": TriageSeverity.CRITICAL,
             "chest tightness": TriageSeverity.CRITICAL,
             "difficulty breathing": TriageSeverity.CRITICAL,
@@ -32,54 +35,84 @@ class SafetyManager:
             "heart attack": TriageSeverity.CRITICAL,
             "cardiac arrest": TriageSeverity.CRITICAL,
             "severe chest": TriageSeverity.CRITICAL,
+            "can't breathe": TriageSeverity.CRITICAL,
             
-            # Neurological emergencies
-            "stroke": TriageSeverity.CRITICAL,
+            # Neurological emergencies (NOW - symptoms happening NOW)
             "unconscious": TriageSeverity.CRITICAL,
-            "severe headache": TriageSeverity.CRITICAL,
             "loss of consciousness": TriageSeverity.CRITICAL,
-            "paralysis": TriageSeverity.CRITICAL,
+            "severe headache now": TriageSeverity.CRITICAL,
+            "sudden paralysis": TriageSeverity.CRITICAL,
+            "sudden weakness": TriageSeverity.CRITICAL,
             "facial drooping": TriageSeverity.CRITICAL,
             "sudden numbness": TriageSeverity.CRITICAL,
+            "collapsed": TriageSeverity.CRITICAL,
+            "seizure": TriageSeverity.CRITICAL,
             
-            # Severe bleeding
+            # Severe bleeding (NOW)
             "severe bleeding": TriageSeverity.CRITICAL,
             "uncontrolled bleeding": TriageSeverity.CRITICAL,
             "heavy bleeding": TriageSeverity.CRITICAL,
             "bleeding won't stop": TriageSeverity.CRITICAL,
             
-            # Respiratory emergencies
-            "can't breathe": TriageSeverity.CRITICAL,
+            # Respiratory emergencies (NOW)
             "choking": TriageSeverity.CRITICAL,
             "severe asthma": TriageSeverity.CRITICAL,
             "anaphylaxis": TriageSeverity.CRITICAL,
             "severe allergic reaction": TriageSeverity.CRITICAL,
             
-            # Severe trauma
+            # Severe trauma (NOW)
             "major accident": TriageSeverity.CRITICAL,
             "severe burn": TriageSeverity.CRITICAL,
             "chemical burn": TriageSeverity.CRITICAL,
             "poisoning": TriageSeverity.CRITICAL,
             "overdose": TriageSeverity.CRITICAL,
             
-            # Abdominal emergencies
+            # Abdominal emergencies (NOW)
             "severe abdominal pain": TriageSeverity.URGENT,
             "sharp abdominal pain": TriageSeverity.URGENT,
             "abdominal pain with fever": TriageSeverity.URGENT,
             
-            # Fever-related
+            # Fever-related (NOW)
             "high fever with rash": TriageSeverity.URGENT,
             "fever 105": TriageSeverity.URGENT,
             "fever with stiff neck": TriageSeverity.URGENT,
-            "meningitis": TriageSeverity.CRITICAL,
+            "suicidal": TriageSeverity.CRITICAL,
         }
         
-        # Home remedy prevention keywords
-        # If user asks "how to treat X at home" for critical conditions
+        # ========== CHRONIC CONDITION INDICATORS ==========
+        # These phrases indicate long-standing/historical conditions, NOT emergencies
+        self.chronic_indicators = [
+            "history of",
+            "diagnosed with",
+            "long-standing",
+            "chronic",
+            "progressive",
+            "over years",
+            "since",
+            "has been",
+            "previously",
+            "past",
+            "old injury",
+            "long-term",
+            "ongoing",
+            "managed with",
+            "treatment plan",
+            "capacity assessment",
+            "mental capacity",
+            "disability assessment",
+            "report of",
+            "assessment of",
+            "patient profile",
+        ]
+        
+        # Home remedy prevention keywords - prohibited conditions for home treatment
+        # Only the most critical conditions
         self.home_remedy_prohibited = {
-            "chest pain", "heart attack", "stroke", "severe bleeding",
+            "chest pain", "heart attack", "cardiac arrest",
+            "stroke", "unconscious", "severe bleeding",
             "poisoning", "overdose", "meningitis", "anaphylaxis",
-            "unconscious", "severe burns", "choking"
+            "choking", "severe burns", "difficulty breathing",
+            "can't breathe", "loss of consciousness"
         }
         
         # Condition-to-emergency-type mapping
@@ -101,19 +134,142 @@ class SafetyManager:
             }
         }
     
-    def detect_emergency(self, user_input: str) -> Tuple[TriageSeverity, bool]:
+    
+    def assess_urgency(self, text: str) -> str:
+        """
+        Uses LLM to classify text as ACUTE_EMERGENCY, NON_EMERGENCY_CHRONIC, or INFORMATIONAL_REPORT.
+        More robust classification with better handling.
+        """
+        try:
+            llm = ChatGroq(model="meta-llama/llama-4-scout-17b-16e-instruct", temperature=0)
+            
+            # First check if this looks like a report/document
+            lower_text = text.lower()
+            report_markers = ["patient profile", "diagnosis", "assessment", "report", "findings", "medical record", 
+                             "discharge", "chief complaint", "prognosis", "mental capacity", "clinical impression"]
+            is_structured_report = any(marker in lower_text for marker in report_markers)
+            
+            prompt = f"""
+Classify this medical text into EXACTLY ONE of these three categories:
+
+1. ACUTE_EMERGENCY: 
+   - Patient describing CURRENT symptoms that are life-threatening
+   - Examples: "I have chest pain now", "I can't breathe", "I'm unconscious"
+   - Requires immediate action (911, ER)
+
+2. NON_EMERGENCY_CHRONIC:
+   - Patient describing ongoing/managed conditions
+   - Patient asking about medication refills or symptom management
+   - May contain serious words but for historical conditions
+   - Examples: "I have diabetes and need medication", "How do I manage my asthma?"
+
+3. INFORMATIONAL_REPORT:
+   - Structured medical documents, reports, summaries
+   - Patient profiles, capacity assessments, discharge summaries
+   - Clinical notes describing past/existing conditions
+   - NOT a patient describing current symptoms needing help
+   - Key markers: "Patient Profile", "Diagnosis", "Assessment", "Report", "Findings"
+
+Medical Text:
+"{text}"
+
+IMPORTANT RULES:
+- If text describes CURRENT acute symptoms NOW → ACUTE_EMERGENCY
+- If text has "Patient Profile", "Diagnosis", "Assessment", "Report", "Findings", "Prognosis" → INFORMATIONAL_REPORT
+- If text contains "history of", "diagnosed with", "progressive", "over years" → CHRONIC or INFORMATIONAL
+- If it's a structured medical document → INFORMATIONAL_REPORT
+- If it's a patient asking for help with ongoing symptoms → NON_EMERGENCY_CHRONIC
+
+Return ONLY the category name (ACUTE_EMERGENCY, NON_EMERGENCY_CHRONIC, or INFORMATIONAL_REPORT). No explanation.
+"""
+            
+            response = llm.invoke(prompt).content.strip().upper()
+            
+            # Parse response - look for exact matches
+            if "ACUTE" in response:
+                return "ACUTE_EMERGENCY"
+            elif "INFORMATIONAL" in response or "REPORT" in response:
+                return "INFORMATIONAL_REPORT"
+            elif "CHRONIC" in response or "NON_EMERGENCY" in response:
+                return "NON_EMERGENCY_CHRONIC"
+            
+            # Default safe fallback - if structured report, treat as informational
+            if is_structured_report:
+                return "INFORMATIONAL_REPORT"
+            return "NON_EMERGENCY_CHRONIC"
+            
+        except Exception as e:
+            print(f"⚠️ LLM Emergency Classification Failed: {e}")
+            # Safe fallback: assume non-emergency unless it was clearly acute
+            return "NON_EMERGENCY_CHRONIC"
+
+    def detect_emergency(self, user_input: str) -> Tuple[TriageSeverity, bool, str]:
         """
         Detect if user input indicates a medical emergency
-        Returns: (severity_level, is_emergency)
+        Two-stage classification:
+        Stage 1: Check for acute emergency keywords
+        Stage 2: If keywords found, use LLM to distinguish acute from chronic context
+        Returns: (severity_level, is_emergency, category)
         """
         lower_input = user_input.lower()
         
-        # Check against critical keywords
-        for keyword, severity in self.critical_keywords.items():
-            if keyword in lower_input:
-                return severity, True
+        # ========== Check if this is a structured medical report/document ==========
+        report_markers = ["patient profile", "diagnosis", "assessment", "report", "findings", 
+                         "medical record", "discharge", "chief complaint", "prognosis", "mental capacity"]
+        is_structured_report = any(marker in lower_input for marker in report_markers)
         
-        return TriageSeverity.LOW, False
+        # If it looks like a structured report, use LLM to classify it properly
+        if is_structured_report:
+            category = self.assess_urgency(user_input)
+            if category == "ACUTE_EMERGENCY":
+                return TriageSeverity.CRITICAL, True, category
+            else:
+                return TriageSeverity.LOW, False, category
+        
+        # ========== STAGE 1: Check for ACUTE Indicators ==========
+        # These indicate a real emergency happening NOW
+        has_acute_keywords = False
+        acute_severity = TriageSeverity.LOW
+        
+        for keyword, severity in self.acute_keywords.items():
+            if keyword in lower_input:
+                has_acute_keywords = True
+                acute_severity = severity
+                break
+        
+        # If NO acute keywords at all -> Definitely not an emergency
+        if not has_acute_keywords:
+            return TriageSeverity.LOW, False, "NON_EMERGENCY_CHRONIC"
+        
+        # ========== STAGE 2: Check for CHRONIC Indicators ==========
+        # If we found acute keywords, check if they're in a chronic context
+        # e.g., "history of stroke" vs "having a stroke now"
+        has_chronic_indicators = any(indicator in lower_input for indicator in self.chronic_indicators)
+        
+        # If words like "history of", "diagnosed with", "progressive", etc. are present,
+        # this is likely a chronic condition report, not an acute emergency
+        if has_chronic_indicators:
+            # Use LLM to double-check the context
+            category = self.assess_urgency(user_input)
+            if category in ["INFORMATIONAL_REPORT", "NON_EMERGENCY_CHRONIC"]:
+                return TriageSeverity.LOW, False, category
+            # If LLM thinks it's acute despite chronic indicators, trust the LLM
+            if category == "ACUTE_EMERGENCY":
+                return acute_severity, True, category
+            # Fallback
+            return TriageSeverity.LOW, False, "NON_EMERGENCY_CHRONIC"
+        
+        # ========== STAGE 3: LLM Confirmation for Ambiguous Cases ==========
+        # If acute keywords found but no chronic indicators, use LLM to verify
+        category = self.assess_urgency(user_input)
+        
+        if category == "ACUTE_EMERGENCY":
+            return acute_severity, True, category
+        elif category == "INFORMATIONAL_REPORT":
+            return TriageSeverity.LOW, False, category
+        else:
+            return TriageSeverity.MEDIUM, False, category # Chronic/Non-emergency
+
     
     def is_home_remedy_request(self, user_input: str) -> bool:
         """
@@ -151,8 +307,12 @@ class SafetyManager:
         
         return True, None
     
-    def get_emergency_response(self, severity: TriageSeverity) -> str:
-        """Get appropriate emergency response message"""
+    def get_emergency_response(self, severity: TriageSeverity, category: str = "") -> str:
+        """Get appropriate emergency response message based on severity and category"""
+        # For informational reports, provide a helpful message instead of emergency alert
+        if category == "INFORMATIONAL_REPORT":
+            return "📋 **Clinical Report Detected**\n\nThis appears to be a medical assessment or clinical report. I can help you:\n- Summarize the diagnosis and findings\n- Explain medical terms and conditions\n- Identify recommended specialists\n- Answer questions about the patient's care recommendations\n\nPlease let me know what specific information you'd like help understanding."
+        
         if severity not in self.emergency_responses:
             return ""  # No special response for non-critical
         return self.emergency_responses[severity]["message"]
@@ -164,11 +324,16 @@ class SafetyManager:
         return self.emergency_responses[severity]["should_book"]
     
     def format_safety_response(self, user_input: str, 
-                              severity: TriageSeverity) -> Optional[str]:
+                              severity: TriageSeverity,
+                              category: str = "") -> Optional[str]:
         """
         Format a complete safety response if needed
         Returns: Safety message if emergency detected, None otherwise
         """
+        # Special handling for informational reports
+        if category == "INFORMATIONAL_REPORT":
+            return self.get_emergency_response(severity, category)
+        
         if severity == TriageSeverity.LOW:
             return None
         
@@ -178,7 +343,7 @@ class SafetyManager:
             return safety_msg
         
         # Return appropriate emergency response
-        return self.get_emergency_response(severity)
+        return self.get_emergency_response(severity, category)
 
 
 # ============================================================================

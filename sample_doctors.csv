@@ -1,0 +1,21 @@
+name,specialty,city,availability,rating,fees,contact,clinic_address,qualifications,years_experience
+Dr. Rajesh Mehta,Cardiologist,Ahmedabad,Mon-Fri 11am-5pm,4.8,800,+91-9876543210,Heart Care Center C.G. Road,MBBS MD Cardiology FESC,15
+Dr. Priya Shah,General Physician,Ahmedabad,Daily 10am-6pm,4.6,500,+91-8765432109,Health Plus Clinic Satellite,MBBS MD General Medicine,10
+Dr. Anil Trivedi,Infectious Disease Specialist,Ahmedabad,Mon-Sat 9am-5pm,4.7,700,+91-7654321098,Apollo Hospital Ahmedabad,MBBS MD Microbiology FICP,12
+Dr. Neha Patel,Pulmonologist,Ahmedabad,Tue-Sat 2pm-8pm,4.9,600,+91-6543210987,Respiratory Care Center Navrangpura,MBBS MD Pulmonary Medicine FCCP,11
+Dr. Vikram Desai,Cardiologist,Surat,Tue-Sat 10am-4pm,4.7,750,+91-9876543211,Heart Institute Vesu,MBBS DM Cardiology,14
+Dr. Anjali Gupta,Gastroenterologist,Surat,Mon-Fri 3pm-7pm,4.5,650,+91-8765432110,Gastro Care Kabilwadi,MBBS MD Medicine DM Gastroenterology,9
+Dr. Sanjay Choksi,General Physician,Surat,Mon-Sat 9am-9pm,4.4,400,+91-7654321099,City Care Clinic Vesu,MBBS MD Medicine,8
+Dr. Mohan Amin,Neurologist,Vadodara,Mon-Thu 11am-3pm,4.8,700,+91-9876543212,Neuro Clinic Alkapuri,MBBS MD Neurology DM,13
+Dr. Meera Sharma,General Physician,Vadodara,Daily 8am-6pm,4.3,450,+91-8765432111,Wellness Center Vadodara,MBBS MD Medicine,7
+Dr. Ravi Kumar,Orthopedic Surgeon,Ahmedabad,Tue-Sun 10am-4pm,4.6,650,+91-9123456789,Bone & Joint Care Hospital,MBBS MS Orthopedic,11
+Dr. Sneha Desai,Dermatologist,Surat,Wed-Fri 4pm-8pm,4.7,550,+91-8234567890,Skin Care Clinic Piplod,MBBS MD Dermatology,8
+Dr. Vikram Joshi,Neurologist,Surat,Mon-Wed 2pm-6pm,4.5,700,+91-7345678901,Brain Care Center Adajan,MBBS MD Neurology,10
+Dr. Pooja Singh,General Physician,Jamnagar,Daily 9am-5pm,4.4,400,+91-6456789012,City Medical Clinic,MBBS MD,6
+Dr. Ashish Patel,Cardiologist,Jamnagar,Tue-Thu 10am-2pm,4.6,750,+91-5567890123,Heart Clinic Jamnagar,MBBS DM Cardiology,12
+Dr. Ritika Verma,Pulmonologist,Rajkot,Mon-Sat 11am-6pm,4.8,600,+91-4678901234,Respiratory Center Rajkot,MBBS MD Pulmonology FCCP,9
+Dr. Nitin Gupta,Gastroenterologist,Vadodara,Thu-Sat 3pm-7pm,4.5,650,+91-3789012345,Gastro Center Sayaji Gunj,MBBS MD Gastroenterology,10
+Dr. Sandhya Nair,Dermatologist,Ahmedabad,Mon-Fri 2pm-6pm,4.7,500,+91-2890123456,Skin Wellness Manek Road,MBBS MD Dermatology,7
+Dr. Rohit Singh,Orthopedic Surgeon,Surat,Wed-Sat 10am-4pm,4.5,700,+91-1901234567,Orthopedic Care Surat,MBBS MS Orthopedic,13
+Dr. Divya Patel,General Physician,Bhavnagar,Daily 10am-6pm,4.3,450,+91-9012345678,Health Care Clinic Bhavnagar,MBBS,5
+Dr. Ajay Kumar,Cardiologist,Vadodara,Mon-Fri 9am-5pm,4.9,800,+91-8123456789,Advanced Heart Hospital,MBBS MD DM Cardiology,14

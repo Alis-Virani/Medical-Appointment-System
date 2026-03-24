@@ -20,7 +20,7 @@ DB_NAME = "hospital.db"
 
 def init_doctor_management_db():
     """Initialize enhanced doctor management schema"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     # Enhanced doctors table with more details
@@ -92,7 +92,7 @@ def add_doctor(name: str, specialty: str, city: str, availability: str = "",
     """
     doctor_id = f"DOC_{int(datetime.now().timestamp() * 1000)}"
     
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -115,7 +115,7 @@ def add_doctor(name: str, specialty: str, city: str, availability: str = "",
 
 def get_doctor(doctor_id: str) -> Optional[Dict]:
     """Retrieve doctor details"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     cursor.execute("SELECT * FROM doctors_v2 WHERE doctor_id = ?", (doctor_id,))
@@ -134,7 +134,7 @@ def update_doctor(doctor_id: str, **kwargs) -> bool:
     Update doctor information
     Example: update_doctor("DOC_123", rating=4.8, availability="Mon-Fri 10am-5pm")
     """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     # Build update query
@@ -158,7 +158,7 @@ def update_doctor(doctor_id: str, **kwargs) -> bool:
 
 def delete_doctor(doctor_id: str) -> bool:
     """Soft delete: mark doctor as inactive"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     cursor.execute("UPDATE doctors_v2 SET is_active = 0 WHERE doctor_id = ?", (doctor_id,))
@@ -177,7 +177,7 @@ def list_doctors(specialty: str = None, city: str = None, active_only: bool = Tr
     """
     List doctors with optional filters
     """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     query = "SELECT * FROM doctors_v2 WHERE 1=1"
@@ -214,7 +214,7 @@ def book_appointment(doctor_id: str, patient_name: str, patient_phone: str,
     Book an appointment
     Returns: appointment_id
     """
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -232,7 +232,7 @@ def book_appointment(doctor_id: str, patient_name: str, patient_phone: str,
 
 def get_appointments(doctor_id: str, date_from = None) -> List[Dict]:
     """Get appointments for a doctor"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     query = "SELECT * FROM appointments WHERE doctor_id = ? AND status = 'scheduled'"
@@ -254,7 +254,7 @@ def get_appointments(doctor_id: str, date_from = None) -> List[Dict]:
 
 def cancel_appointment(appointment_id: int) -> bool:
     """Cancel an appointment"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     cursor.execute("UPDATE appointments SET status = 'cancelled' WHERE id = ?", (appointment_id,))
@@ -271,7 +271,7 @@ def cancel_appointment(appointment_id: int) -> bool:
 
 def add_review(doctor_id: str, rating: float, review: str = "", reviewer_name: str = "Anonymous"):
     """Add a review for a doctor"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -296,7 +296,7 @@ def add_review(doctor_id: str, rating: float, review: str = "", reviewer_name: s
 
 def get_reviews(doctor_id: str, limit: int = 5) -> List[Dict]:
     """Get reviews for a doctor"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     cursor.execute("""
@@ -319,7 +319,7 @@ def get_reviews(doctor_id: str, limit: int = 5) -> List[Dict]:
 
 def migrate_legacy_doctors():
     """Convert old doctors table to new format"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
     
     # Check if old table exists
@@ -327,16 +327,22 @@ def migrate_legacy_doctors():
     if not cursor.fetchone():
         conn.close()
         return
-    
+
+    # Skip migration if new table already has data
+    cursor.execute("SELECT COUNT(*) FROM doctors_v2")
+    if cursor.fetchone()[0] > 0:
+        conn.close()
+        return
+
     # Get all doctors from old table
     cursor.execute("SELECT name, specialty, availability, city FROM doctors")
     old_doctors = cursor.fetchall()
-    
+    conn.close()  # Close BEFORE calling add_doctor (which opens its own connection)
+
     # Insert into new table
     for name, specialty, availability, city in old_doctors:
         add_doctor(name, specialty, city, availability)
-    
-    conn.close()
+
     print(f"✅ Migrated {len(old_doctors)} doctors to new schema")
 
 

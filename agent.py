@@ -1,6 +1,6 @@
 # agent.py
 import os
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_groq import ChatGroq
 from typing import Optional
 
 # Fix for pydantic import
@@ -18,11 +18,11 @@ class DoctorSearch(BaseModel):
 
 # 2. AGENT SETUP
 def get_agent_llm():
-    if not os.getenv("NVIDIA_API_KEY"):
+    if not os.getenv("GROQ_API_KEY"):
         return None
         
-    llm = ChatNVIDIA(
-        model="mistralai/mistral-large-3-675b-instruct-2512",
+    llm = ChatGroq(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         temperature=0.1
     )
     
@@ -30,7 +30,7 @@ def get_agent_llm():
     return structured_llm
 
 def basic_chat_llm():
-    return ChatNVIDIA(
-        model="mistralai/mistral-large-3-675b-instruct-2512",
+    return ChatGroq(
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         temperature=0.1
     )

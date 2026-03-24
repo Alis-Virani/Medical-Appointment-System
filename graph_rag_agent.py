@@ -5,7 +5,7 @@ Replaces keyword matching with intelligent graph reasoning
 """
 
 import os
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
 from typing import Optional, List, Dict
 from knowledge_graph import get_knowledge_graph
@@ -51,12 +51,12 @@ class GraphRAGAgent:
     
     def _initialize_llms(self):
         """Initialize LLMs"""
-        if not os.getenv("NVIDIA_API_KEY"):
-            print("⚠️ NVIDIA_API_KEY not set. Some features will be limited.")
+        if not os.getenv("GROQ_API_KEY"):
+            print("⚠️ GROQ_API_KEY not set. Some features will be limited.")
             return
         
-        self.llm = ChatNVIDIA(
-            model="mistralai/mistral-large-3-675b-instruct-2512",
+        self.llm = ChatGroq(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
             temperature=0.3  # Lower temperature for medical accuracy
         )
         
