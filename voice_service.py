@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def _get_sarvam_config() -> Dict[str, str]:
+def _get_srvam_config() -> Dict[str, str]:
     """Collect Sarvam config from environment variables."""
     return {
         "api_key": os.getenv("SARVAM_API_KEY", "").strip(),

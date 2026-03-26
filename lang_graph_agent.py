@@ -1089,10 +1089,24 @@ Answer concisely."""
     else:
         report_info = ""
     
-    # ── STEP 1: If NO context (no report, no symptoms), ASK for clarification ──────
-    if not report_context and not symptoms:
+    # ── STEP 1: Check if symptoms are TOO VAGUE ──────────────────────────────────
+    # "I'm not feeling well", "feeling bad", "not well" = too vague, ask for details
+    vague_symptoms = [
+        "not feeling well", "not well", "feeling bad", "bad", "sick", "ill",
+        "fine", "ok", "not ok", "not good", "not great", "feeling off",
+        "something wrong", "unwell"
+    ]
+    
+    is_vague = False
+    if symptoms:
+        # Check if ALL symptoms are vague
+        symptom_str = " ".join(str(s).lower() for s in symptoms)
+        is_vague = any(vague in symptom_str for vague in vague_symptoms) and len(symptom_str) < 50
+    
+    # If NO REAL context (no report, no clear symptoms), ASK for clarification ──────
+    if not report_context and (not symptoms or is_vague):
         return {
-            "messages": [AIMessage(content="To give you the best remedies, could you please tell me:\n\n• What condition or symptom do you want remedies for?\n• Or you can upload a medical report and I'll give you remedies based on that.")]
+            "messages": [AIMessage(content="I understand you're not feeling well. To give you helpful advice, could you tell me more specifically:\n\n• What are your **main symptoms**? (e.g., fever, headache, cough, body ache, etc.)\n• How **long** has this been going on? (hours, days, weeks)\n• Any other details that might help?\n\nOr you can upload a medical report for me to analyze.")]
         }
     
     # ── STEP 2: Extract full context from conversation history ──────────────────────

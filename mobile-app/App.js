@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { Alert, Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -36,6 +37,10 @@ import { initializeOfflineSync } from './services/offlineSync';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+function EmergencyPlaceholder() {
+  return null;
+}
 
 /**
  * Auth Stack - Login/Register screens
@@ -143,6 +148,25 @@ function PatientStack() {
 function AppTabs() {
   const userType = useAuthStore(state => state.userType);
 
+  const triggerEmergencyCall = () => {
+    Alert.alert(
+      'Emergency Ambulance',
+      'Call 108 now?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Call 108',
+          style: 'destructive',
+          onPress: () => {
+            Linking.openURL('tel:108').catch(() => {
+              Alert.alert('Call Failed', 'Unable to open dialer on this device.');
+            });
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -155,6 +179,7 @@ function AppTabs() {
           else if (route.name === 'Chat') iconName = 'message';
           else if (route.name === 'Notifications') iconName = 'notifications';
           else if (route.name === 'Profile') iconName = 'person';
+          else if (route.name === 'Emergency') iconName = 'local-hospital';
 
           return (
             <MaterialIcons 
@@ -200,6 +225,20 @@ function AppTabs() {
         name="Profile" 
         component={ProfileScreen}
         options={{ title: 'Profile' }}
+      />
+      <Tab.Screen
+        name="Emergency"
+        component={EmergencyPlaceholder}
+        options={{
+          title: 'Emergency 108',
+          tabBarActiveTintColor: '#ef4444',
+        }}
+        listeners={{
+          tabPress: e => {
+            e.preventDefault();
+            triggerEmergencyCall();
+          },
+        }}
       />
     </Tab.Navigator>
   );

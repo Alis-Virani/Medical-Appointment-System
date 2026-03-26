@@ -510,6 +510,9 @@ with st.sidebar:
                 st.text(st.session_state.get("file_context", "")[:500] + "...")
 
     if st.session_state.get("file_context"):
+        # Show active file context feedback
+        file_name = st.session_state.get("analyzed_filename", "Medical Report")
+        st.info(f"📋 **Report Active**: {file_name}\n\nYour questions will be answered in context of this report.")
         if st.button("Clear Report", use_container_width=True):
             st.session_state.file_context = None
             st.session_state.file_context_sent = False
@@ -612,9 +615,11 @@ if user_input:
     st.chat_message("user").markdown(user_input)
 
     file_context      = st.session_state.get("file_context", "")
-    file_context_sent = st.session_state.get("file_context_sent", False)
-    if file_context and not file_context_sent:
+    # ALWAYS include file context if available - don't use sent flag
+    # This ensures the AI considers the report for every question
+    if file_context:
         agent_input = f"[MEDICAL REPORT CONTEXT]\n{file_context}\n\n[USER QUESTION]\n{english_input}"
+        # Mark that we showed the user they uploaded it
         st.session_state.file_context_sent = True
     else:
         agent_input = english_input

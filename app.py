@@ -15,7 +15,6 @@ init_database()
 
 st.set_page_config(page_title="MediCare AI", page_icon="🩺", layout="wide")
 
-# ── ENHANCED CSS STYLING ──────────────────────────────────────────────────────────
 st.markdown("""
 <style>
     /* ===== MAIN CONTAINER ===== */
